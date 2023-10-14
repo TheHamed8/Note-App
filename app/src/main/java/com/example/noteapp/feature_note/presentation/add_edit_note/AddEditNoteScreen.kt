@@ -6,8 +6,12 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Save
@@ -25,6 +29,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.example.noteapp.feature_note.domain.model.Note
 import com.example.noteapp.feature_note.presentation.add_edit_note.components.TransparentHintTextField
+import com.example.noteapp.feature_note.presentation.notes.components.rememberImeState
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -36,6 +41,9 @@ fun AddEditNoteScreen(
     val titleState = viewModel.noteTitle.value
     val contentState = viewModel.noteContent.value
 
+    val imeState = rememberImeState()
+    val scrollState = rememberScrollState()
+
     val scaffoldState = rememberScaffoldState()
 
     val noteBackgroundAnimatable = remember {
@@ -46,7 +54,7 @@ fun AddEditNoteScreen(
 
     val scope = rememberCoroutineScope()
 
-    LaunchedEffect(key1 = true) {
+    LaunchedEffect(key1 = true, key2 = imeState.value) {
         viewModel.eventFlow.collectLatest { event ->
             when (event) {
                 is AddEditNoteViewModel.UiEvent.ShowSnackBar -> {
@@ -54,12 +62,17 @@ fun AddEditNoteScreen(
                         message = event.message
                     )
                 }
+
                 is AddEditNoteViewModel.UiEvent.SaveNote -> {
                     navController.navigateUp()
                 }
             }
+            if (imeState.value) {
+                scrollState.animateScrollTo(scrollState.maxValue, tween(300))
+            }
         }
     }
+
 
     Scaffold(
         floatingActionButton = {
@@ -77,6 +90,7 @@ fun AddEditNoteScreen(
                 .fillMaxSize()
                 .background(noteBackgroundAnimatable.value)
                 .padding(16.dp)
+                .verticalScroll(scrollState)
         ) {
             Row(
                 modifier = Modifier
@@ -124,6 +138,7 @@ fun AddEditNoteScreen(
                 textStyle = MaterialTheme.typography.h5
             )
             Spacer(modifier = Modifier.height(16.dp))
+
             TransparentHintTextField(
                 text = contentState.text,
                 hint = contentState.hint,
@@ -135,7 +150,8 @@ fun AddEditNoteScreen(
                 },
                 isHintVisible = contentState.isHIntVisible,
                 textStyle = MaterialTheme.typography.body1,
-                modifier = Modifier.fillMaxHeight()
+                modifier = Modifier
+                    .fillMaxHeight()
             )
         }
     }
